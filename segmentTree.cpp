@@ -1,77 +1,74 @@
 #include <bits/stdc++.h>
 using namespace std;
-// A utility function to get the middle index from corner indexes.
-int getMid(int s, int e) { return s + (e - s) / 2; }
-int getSumUtil(int *st, int ss, int se, int qs, int qe, int si)
+struct Node
 {
-    // If segment of this node is a part of given range, then return
-    // the sum of the segment
-    if (qs <= ss && qe >= se)
-        return st[si];
-    // If segment of this node is outside the given range
-    if (se < qs || ss > qe)
-        return 0;
-    // If a part of this segment overlaps with the given range
-    int mid = getMid(ss, se);
-    return getSumUtil(st, ss, mid, qs, qe, 2 * si + 1) +
-           getSumUtil(st, mid + 1, se, qs, qe, 2 * si + 2);
-}
-// Return sum of elements in range from index qs (query start)
-// to qe (query end). It mainly uses getSumUtil()
-int getSum(int *st, int n, int qs, int qe)
+    // store the sum of the interval
+    int sum;
+    // store the interval in a pair of integers
+    pair<int, int> interval; /* L=interval.first and R=interval.second*/
+    Node *left;              // points to left child
+    Node *right;             // points to right child
+};
+
+void build(vector<int> array, Node *cur_node, int L, int R)
 {
-    // Check for erroneous input values
-    if (qs < 0 || qe > n - 1 || qs > qe)
+
+    cur_node->interval = make_pair(L, R);
+    if (L == R)
     {
-        cout << "Invalid Input";
-        return -1;
+        // if current node is a leaf node
+        cur_node->sum = array[L];
+        cur_node->left = NULL;
+        cur_node->right = NULL;
+        return;
     }
-    return getSumUtil(st, 0, n - 1, qs, qe, 0);
-}
-// A recursive function that constructs Segment Tree for array[ss..se].
-// si is index of current node in segment tree st
-int constructSTUtil(int arr[], int ss, int se, int *st, int si)
-{
-    // If there is one element in array, store it in current node of
-    // segment tree and return
-    if (ss == se)
-    {
-        st[si] = arr[ss];
-        return arr[ss];
-    }
-    // If there are more than one elements, then recur for left and
-    // right subtrees and store the sum of values in this node
-    int mid = getMid(ss, se);
-    st[si] = constructSTUtil(arr, ss, mid, st, si * 2 + 1) +
-             constructSTUtil(arr, mid + 1, se, st, si * 2 + 2);
-    return st[si];
+    cur_node->left = new Node;
+    cur_node->right = new Node;
+
+    build(array, cur_node->left, L, (L + R) / 2);
+    build(array, cur_node->right, (L + R) / 2 + 1, R);
+
+    cur_node->sum = cur_node->left->sum + cur_node->right->sum;
+
+    return;
 }
 
-/* Function to construct segment tree from given array. This function
-allocates memory for segment tree and calls constructSTUtil() to
-fill the allocated memory */
-int *constructST(int arr[], int n)
+// returns the sum in the range [start, end]
+int query(vector<int> array, Node *cur_node, int start, int end)
 {
-    // Allocate memory for the segment tree
-    // Height of segment tree
-    int x = (int)(ceil(log2(n)));
-    // Maximum size of segment tree
-    int max_size = 2 * (int)pow(2, x) - 1;
-    // Allocate memory
-    int *st = new int[max_size];
-    // Fill the allocated memory st
-    constructSTUtil(arr, 0, n - 1, st, 0);
-    // Return the constructed segment tree
-    return st;
+
+    int L = cur_node->interval.first;
+    int R = cur_node->interval.second;
+
+    if (R < start || L > end)
+    {
+        return 0;
+    }
+
+    if (start <= L && end >= R)
+    {
+        return cur_node->sum;
+    }
+
+    int left_index = query(array, cur_node->left, start, end);
+    int right_index = query(array, cur_node->right, start, end);
+
+    return left_index + right_index;
 }
-// Driver program to test above functions
+
 int main()
 {
-    int arr[] = {1, 3, 5, 7, 9, 11};
-    int n = sizeof(arr) / sizeof(arr[0]);
-    // Build segment tree from given array
-    int *st = constructST(arr, n);
-    // Print sum of values in array from index 1 to 3
-    cout << "Sum of values in given range = " << getSum(st, n, 1, 3) << endl;
+    // define n and array
+    int n = 5, a, b;
+    vector<int> array = {1, 2, 1, 8, 7};
+
+    Node *root = new Node();
+    build(array, root, 0, n - 1);
+    cout << "Enter the range";
+    cin >> a >> b;
+
+    cout << "The sum in the interval is "
+         << query(array, root, a, b) << '\n';
+
     return 0;
 }
